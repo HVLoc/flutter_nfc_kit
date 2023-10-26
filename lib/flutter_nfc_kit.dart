@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:convert/convert.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:ndef/ndef.dart' as ndef;
+import 'package:ndef/utilities.dart';
 import 'package:ndef/ndef.dart' show TypeNameFormat; // for generated file
 
 part 'flutter_nfc_kit.g.dart';
@@ -173,36 +173,16 @@ class NDEFRawRecord {
 extension NDEFRecordConvert on ndef.NDEFRecord {
   /// Convert an [ndef.NDEFRecord] to encoded [NDEFRawRecord]
   NDEFRawRecord toRaw() {
-    return NDEFRawRecord(
-      convertUint8ListToHexString(id),
-      convertUint8ListToHexString(payload),
-      convertUint8ListToHexString(type),
-      this.tnf,
-    );
-  }
-
-  String convertUint8ListToHexString(Uint8List? uint8list) {
-    return uint8list != null ? hex.encode(uint8list) : '';
+    return NDEFRawRecord(id?.toHexString() ?? '', payload?.toHexString() ?? '',
+        type?.toHexString() ?? '', this.tnf);
   }
 
   /// Convert an [NDEFRawRecord] to decoded [ndef.NDEFRecord].
   /// Use `NDEFRecordConvert.fromRaw` to invoke.
   static ndef.NDEFRecord fromRaw(NDEFRawRecord raw) {
     return ndef.decodePartialNdefMessage(
-      raw.typeNameFormat,
-      convertStringToUint8List(raw.type),
-      convertStringToUint8List(raw.payload),
-      id: raw.identifier == ""
-          ? null
-          : convertStringToUint8List(raw.identifier),
-    );
-  }
-
-  static Uint8List convertStringToUint8List(String str) {
-    final List<int> codeUnits = str.codeUnits;
-    final Uint8List unit8List = Uint8List.fromList(codeUnits);
-
-    return unit8List;
+        raw.typeNameFormat, raw.type.toBytes(), raw.payload.toBytes(),
+        id: raw.identifier == "" ? null : raw.identifier.toBytes());
   }
 }
 
