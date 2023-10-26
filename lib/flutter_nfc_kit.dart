@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
-import 'dart:typed_data';
 
+import 'package:convert/convert.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:ndef/ndef.dart' as ndef;
 import 'package:ndef/ndef.dart' show TypeNameFormat; // for generated file
-import 'package:json_annotation/json_annotation.dart';
 
 part 'flutter_nfc_kit.g.dart';
 
@@ -173,16 +173,36 @@ class NDEFRawRecord {
 extension NDEFRecordConvert on ndef.NDEFRecord {
   /// Convert an [ndef.NDEFRecord] to encoded [NDEFRawRecord]
   NDEFRawRecord toRaw() {
-    return NDEFRawRecord(id?.toHexString() ?? '', payload?.toHexString() ?? '',
-        type?.toHexString() ?? '', this.tnf);
+    return NDEFRawRecord(
+      convertUint8ListToHexString(id),
+      convertUint8ListToHexString(payload),
+      convertUint8ListToHexString(type),
+      this.tnf,
+    );
+  }
+
+  String convertUint8ListToHexString(Uint8List? uint8list) {
+    return uint8list != null ? hex.encode(uint8list) : '';
   }
 
   /// Convert an [NDEFRawRecord] to decoded [ndef.NDEFRecord].
   /// Use `NDEFRecordConvert.fromRaw` to invoke.
   static ndef.NDEFRecord fromRaw(NDEFRawRecord raw) {
     return ndef.decodePartialNdefMessage(
-        raw.typeNameFormat, raw.type.toBytes(), raw.payload.toBytes(),
-        id: raw.identifier == "" ? null : raw.identifier.toBytes());
+      raw.typeNameFormat,
+      convertStringToUint8List(raw.type),
+      convertStringToUint8List(raw.payload),
+      id: raw.identifier == ""
+          ? null
+          : convertStringToUint8List(raw.identifier),
+    );
+  }
+
+  static Uint8List convertStringToUint8List(String str) {
+    final List<int> codeUnits = str.codeUnits;
+    final Uint8List unit8List = Uint8List.fromList(codeUnits);
+
+    return unit8List;
   }
 }
 
@@ -344,7 +364,7 @@ class FlutterNfcKit {
   }
 
   /// iOS only, change currently displayed NFC reader session alert message with [message].
-  /// 
+  ///
   /// There must be a valid session when invoking.
   /// On Android, call to this function does nothing.
   static Future<void> setIosAlertMessage(String message) async {
@@ -361,36 +381,30 @@ class FlutterNfcKit {
   }
 
   /// Authenticate against a sector of MIFARE Classic tag.
-  /// 
+  ///
   /// Either one of [keyA] or [keyB] must be provided.
   /// If both are provided, [keyA] will be used.
   /// Returns whether authentication succeeds.
-  static Future<bool> authenticateSector<T>(
-    int index, {T? keyA, T? keyB}
-  ) async {
+  static Future<bool> authenticateSector<T>(int index,
+      {T? keyA, T? keyB}) async {
     assert(T is String || T is Uint8List);
-    return await _channel.invokeMethod('authenticateSector', {
-      'index': index,
-      'keyA': keyA,
-      'keyB': keyB
-    });
+    return await _channel.invokeMethod(
+        'authenticateSector', {'index': index, 'keyA': keyA, 'keyB': keyB});
   }
 
   /// Read one block (16 bytes) from tag
-  /// 
+  ///
   /// There must be a valid session when invoking.
   /// [index] refers to the block / page index.
   /// For MIFARE Classic tags, you must first authenticate against the corresponding sector.
   /// For MIFARE Ultralight tags, four consecutive pages will be read.
   /// Returns data in [Uint8List].
   static Future<Uint8List> readBlock(int index) async {
-    return await _channel.invokeMethod('readBlock', {
-      'index': index
-    }); 
+    return await _channel.invokeMethod('readBlock', {'index': index});
   }
 
   /// Write one block (16B) / page (4B) to MIFARE Classic / Ultralight tag
-  /// 
+  ///
   /// There must be a valid session when invoking.
   /// [index] refers to the block / page index.
   /// For MIFARE Classic tags, you must first authenticate against the corresponding sector.
@@ -403,16 +417,13 @@ class FlutterNfcKit {
   }
 
   /// Read one sector from MIFARE Classic tag
-  /// 
+  ///
   /// There must be a valid session when invoking.
   /// [index] refers to the sector index.
   /// You must first authenticate against the corresponding sector.
   /// Note: not all sectors are 64B long, some tags might have 256B sectors.
   /// Returns data in [Uint8List].
   static Future<Uint8List> readSector(int index) async {
-    return await _channel.invokeMethod('readSector', {
-      'index': index
-    });
+    return await _channel.invokeMethod('readSector', {'index': index});
   }
-
 }

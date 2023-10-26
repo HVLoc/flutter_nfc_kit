@@ -5,12 +5,11 @@ import 'dart:async';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html show window;
 import 'dart:js_util';
-import 'dart:typed_data';
-import 'package:convert/convert.dart';
 
+import 'package:convert/convert.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:flutter_nfc_kit/webusb_interop.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 /// A web implementation of the FlutterNfcKit plugin.
 ///
